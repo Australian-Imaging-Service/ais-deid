@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dicom-deid
+spec:
+  template:
+    spec:
+      containers:
+      - name: deid
+        image: yourrepo/deid:latest
+        command: ["python", "-m", "deid_module.cli"]
+        args:
+          - "--input=/input"
+          - "--output=/output"
+        volumeMounts:
+          - name: input
+            mountPath: /input
+          - name: output
+            mountPath: /output
+      restartPolicy: Never
