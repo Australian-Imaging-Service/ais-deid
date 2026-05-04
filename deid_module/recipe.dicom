@@ -21,7 +21,7 @@ REPLACE AccessionNumber func:hash_id
 REPLACE IssuerOfPatientID func:hash_id
 
 ########################
-# REQUIRED FOR XNAT INGEST
+# REQUIRED FOR XNAT MAPPING
 ########################
 
 KEEP StudyInstanceUID
