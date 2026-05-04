@@ -1,0 +1,53 @@
+FORMAT dicom
+
+########################
+# IDENTIFIERS (REMOVE)
+########################
+
+REMOVE PatientName
+REMOVE PatientBirthDate
+REMOVE PatientAddress
+REMOVE OtherPatientIDs
+REMOVE OtherPatientNames
+REMOVE PatientTelephoneNumbers
+REMOVE PatientEmailAddress
+
+########################
+# HASHED IDENTIFIERS
+########################
+
+REPLACE PatientID func:hash_id
+REPLACE AccessionNumber func:hash_id
+REPLACE IssuerOfPatientID func:hash_id
+
+########################
+# REQUIRED FOR XNAT INGEST
+########################
+
+KEEP StudyInstanceUID
+KEEP SeriesInstanceUID
+KEEP SOPInstanceUID
+
+KEEP StudyDate
+KEEP SeriesDate
+
+KEEP Modality
+KEEP SeriesNumber
+KEEP InstanceNumber
+
+KEEP ProtocolName
+KEEP BodyPartExamined
+
+KEEP Manufacturer
+KEEP ManufacturerModelName
+
+########################
+# SAFE CLEANUP
+########################
+
+REMOVE PerformingPhysicianName
+REMOVE ReferringPhysicianName
+REMOVE OperatorsName
+
+REMOVE InstitutionName
+REMOVE InstitutionAddress
