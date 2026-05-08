@@ -1,0 +1,60 @@
+FORMAT dicom
+
+%header
+
+# Mark file as deidentified
+ADD PatientIdentityRemoved YES
+
+########################
+# DEMOGRAPHIC TAGS
+########################
+
+REPLACE PatientName func:hash_id
+REPLACE PatientID var:anon_patient_id
+REPLACE PatientBirthDate func:hash_id
+REMOVE PatientAddress
+REMOVE OtherPatientIDs
+REMOVE OtherPatientNames
+REMOVE PatientTelephoneNumbers
+REMOVE PatientEmailAddress
+REMOVE PatientSex
+
+########################
+# STUDY AND SERIES INFORMATION
+########################
+
+KEEP StudyInstanceUID
+KEEP SeriesInstanceUID
+KEEP SOPInstanceUID
+KEEP Modality
+KEEP SeriesNumber
+KEEP InstanceNumber
+KEEP ProtocolName
+KEEP BodyPartExamined
+KEEP Manufacturer
+KEEP ManufacturerModelName
+REPLACE AccessionNumber func:hash_id
+REPLACE IssuerOfPatientID func:hash_id
+REPLACE StudyID var:anon_study_id
+REPLACE ProtocolName var:anon_protocol
+REMOVE InstitutionName
+REMOVE InstitutionAddress
+REMOVE PerformingPhysicianName
+REMOVE ReferringPhysicianName
+REMOVE contains:PhysicianName
+REMOVE OperatorsName
+REMOVE StudyDescription
+REMOVE SeriesDescription
+
+########################
+# DATES AND TIMES
+########################
+
+JITTER StudyDate var:date_jitter
+JITTER endswith:Date var:date_jitter
+
+########################
+# PRIVATE TAGS, HIDDEN DATA, FILE METADATA, FREE TEXT ENTRY
+########################
+
+REMOVE startswith:Private
