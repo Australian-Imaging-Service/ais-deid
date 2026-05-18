@@ -173,8 +173,8 @@ kubectl logs -f job/dicom-deid
 - Private tags (`remove_private=True`) and nested sequences (`strip_sequences=True`)
   are stripped by default. Only disable these if you have a specific reason.
 
-  ## File overview
-  - pyproject.toml
+## File overview
+- pyproject.toml
 Th project's packaging, dependencies, and tooling configuration. Declares the package name, version, and Python requirement (≥3.10). Lists runtime dependencies (deid, pydicom, click, rich) and dev dependencies (pytest, pytest-cov, flake8, pre-commit). Registers the dicom-deid shell command as an entry point so it's available system-wide after pip install. Also configures pytest's test paths and coverage settings.
 - recipe.dicom
 The de-identification rule file consumed by the deid library. Written in deid's plain-text recipe language, it defines an action for every category of PHI tag: patient identity (REPLACE/BLANK/REMOVE), dates (JITTER), times (BLANK), physician/operator/institution names (REMOVE), device identifiers (REMOVE), request/order fields (REMOVE), protocol descriptions (BLANK), secondary UIDs (REMOVE), sequences (REMOVE), and free-text comment fields (BLANK). Uses var: placeholders for values that are computed at runtime (e.g. var:anon_patient_id), which are injected by the engine. Field expanders like endswith:Date and contains:PhysicianName apply rules to whole groups of tags with a single line. This is the primary file to edit when adjusting what gets removed or changed.
@@ -186,7 +186,6 @@ Linting configuration. Sets max line length to 100, suppresses two common false-
 Defines Git pre-commit hooks that run automatically before every commit. Includes: trailing-whitespace, end-of-file-fixer, check-yaml, check-merge-conflict, and debug-statements from the pre-commit standard library; flake8 with flake8-bugbear for linting; and codespell for spell-checking. This is what prevents issues like the hardcoded salt or wrong API calls from ever reaching the main branch.
 - .codespell-ignorewords
 A suppression list for the codespell hook. Contains medical/DICOM terms that spell-checkers incorrectly flag as misspellings (dicom, deid, anonymise, anonymisation, etc.).
-
 dicom_deid
 - __init__.py
 Minimal package initialiser. Declares __version__ = "0.1.0", which is imported by the CLI for --version output and by pyproject.toml as the authoritative version string.
