@@ -186,6 +186,7 @@ Linting configuration. Sets max line length to 100, suppresses two common false-
 Defines Git pre-commit hooks that run automatically before every commit. Includes: trailing-whitespace, end-of-file-fixer, check-yaml, check-merge-conflict, and debug-statements from the pre-commit standard library; flake8 with flake8-bugbear for linting; and codespell for spell-checking. This is what prevents issues like the hardcoded salt or wrong API calls from ever reaching the main branch.
 - .codespell-ignorewords
 A suppression list for the codespell hook. Contains medical/DICOM terms that spell-checkers incorrectly flag as misspellings (dicom, deid, anonymise, anonymisation, etc.).
+
 dicom_deid
 - __init__.py
 Minimal package initialiser. Declares __version__ = "0.1.0", which is imported by the CLI for --version output and by pyproject.toml as the authoritative version string.
