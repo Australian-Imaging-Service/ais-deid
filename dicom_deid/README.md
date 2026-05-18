@@ -173,6 +173,30 @@ kubectl logs -f job/dicom-deid
 - Private tags (`remove_private=True`) and nested sequences (`strip_sequences=True`)
   are stripped by default. Only disable these if you have a specific reason.
 
+  ## File overview
+  - pyproject.toml
+Th project's packaging, dependencies, and tooling configuration. Declares the package name, version, and Python requirement (≥3.10). Lists runtime dependencies (deid, pydicom, click, rich) and dev dependencies (pytest, pytest-cov, flake8, pre-commit). Registers the dicom-deid shell command as an entry point so it's available system-wide after pip install. Also configures pytest's test paths and coverage settings.
+- recipe.dicom
+The de-identification rule file consumed by the deid library. Written in deid's plain-text recipe language, it defines an action for every category of PHI tag: patient identity (REPLACE/BLANK/REMOVE), dates (JITTER), times (BLANK), physician/operator/institution names (REMOVE), device identifiers (REMOVE), request/order fields (REMOVE), protocol descriptions (BLANK), secondary UIDs (REMOVE), sequences (REMOVE), and free-text comment fields (BLANK). Uses var: placeholders for values that are computed at runtime (e.g. var:anon_patient_id), which are injected by the engine. Field expanders like endswith:Date and contains:PhysicianName apply rules to whole groups of tags with a single line. This is the primary file to edit when adjusting what gets removed or changed.
+- Dockerfile
+A multi-stage Docker build. Stage 1 (builder) installs hatch and builds a wheel from the source. Stage 2 (runtime) is a minimal python:3.11-slim image that installs only the pre-built wheel — no build tools in the final image. Creates a non-root deid user for security, mounts /input and /output as working directories, and sets ENTRYPOINT ["dicom-deid"] so the container is used directly as a CLI tool. Secrets (DEID_SALT) are deliberately not baked in and must be injected at runtime.
+- .flake8
+Linting configuration. Sets max line length to 100, suppresses two common false-positive rules (E203, W503), excludes build/cache directories, and allows longer lines in test files where fixture data is verbose.
+- .pre-commit-config.yaml
+Defines Git pre-commit hooks that run automatically before every commit. Includes: trailing-whitespace, end-of-file-fixer, check-yaml, check-merge-conflict, and debug-statements from the pre-commit standard library; flake8 with flake8-bugbear for linting; and codespell for spell-checking. This is what prevents issues like the hardcoded salt or wrong API calls from ever reaching the main branch.
+- .codespell-ignorewords
+A suppression list for the codespell hook. Contains medical/DICOM terms that spell-checkers incorrectly flag as misspellings (dicom, deid, anonymise, anonymisation, etc.).
+
+dicom_deid
+- __init__.py
+Minimal package initialiser. Declares __version__ = "0.1.0", which is imported by the CLI for --version output and by pyproject.toml as the authoritative version string.
+- transforms.py
+Pure functions that compute replacement values for DICOM tags. Manages the DEID_SALT secret: reads it from the environment at import time and exposes _require_salt() which raises a clear RuntimeError if it's missing. _hash() performs salted SHA-256 pseudonymisation (24 hex chars, 96 bits — deterministic, so the same patient always gets the same anonymous ID). hash_patient_id() hashes PatientID. hash_accession_number() hashes AccessionNumber with a field-name prefix so the same raw value produces a different hash for different tag types — preventing cross-linkage. Also provides passthrough() (returns value unchanged) and blank_if_present() (returns None to blank a tag while keeping it present). All functions follow the deid func: signature (item, value, field, dicom) -> str | None.
+- engine.py
+The core orchestration class. Defines two result dataclasses: FileResult (records success/failure and error message for one file) and RunResult (aggregates all results, exposes .successes, .failures, and .summary()). The DEFAULT_VARIABLE_BUILDERS dict maps each var: name in the recipe to a callable that derives the value from the DICOM dataset — this is how hashed IDs and the date jitter get passed to the recipe. DeidEngine.__init__() loads the recipe, merges any caller-supplied variable builders over the defaults, and eagerly validates that DEID_SALT is available so misconfiguration is caught immediately. process_file() implements the correct four-step deid API (construct parser with recipe, define vars, parse, save) with full try/except so one bad file never aborts a batch. process_directory() uses rglob with relative_to() to preserve the full patient/study/series directory hierarchy in the output.
+- cli.py
+The user-facing command-line interface, built with Click. The root main group provides --verbose (toggles DEBUG logging) and --version. Two subcommands: process runs de-identification — it accepts --input, --output, --recipe (also via DEID_RECIPE env var), --date-jitter (also via DEID_DATE_JITTER), --glob, --no-remove-private, and --no-strip-sequences; after running it prints a rich colour-coded summary table per file and exits with code 1 if any failures occurred. validate audits a de-identified output directory — checks that high-risk tags (InstitutionName, ReferringPhysicianName, OperatorsName, etc.) are absent or empty, that PatientName doesn't look like a real name, and that PatientIdentityRemoved=YES is set; prints a failure table and exits with code 1 if issues are found.
+
 ---
 
 ## License
