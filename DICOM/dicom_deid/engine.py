@@ -25,6 +25,8 @@ from deid.dicom.parser import DicomParser
 
 from .transforms import hash_patient_id, hash_accession_number
 
+import importlib.util
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,6 +41,7 @@ class FileResult:
     output_path: Path
     success: bool
     error: str | None = None
+    reid_path: Path | None = None
 
 
 @dataclass
@@ -115,10 +118,14 @@ class DeidEngine:
         variable_builders: dict[str, VariableBuilder] | None = None,
         strip_sequences: bool = True,
         remove_private: bool = True,
+        capture_headers: bool = False,
+        header_output_dir: Path | None = None,
     ) -> None:
         self.recipe = DeidRecipe(str(recipe_path))
         self.strip_sequences = strip_sequences
         self.remove_private = remove_private
+        self.capture_headers = capture_headers
+        self.header_output_dir = header_output_dir
 
         # Merge caller-supplied builders over defaults
         self._variable_builders: dict[str, VariableBuilder] = {
@@ -148,6 +155,7 @@ class DeidEngine:
 
         The output directory is created if it does not exist.
         Returns a FileResult; never raises — exceptions are caught and recorded.
+        Returns a mapping JSON.
         """
         infile = Path(infile)
         outfile = Path(outfile)
@@ -156,11 +164,14 @@ class DeidEngine:
             outfile.parent.mkdir(parents=True, exist_ok=True)
 
             # ── STEP 1: Construct parser with recipe bound at creation ──────
-            # Edge_De-id bug: DicomParser(infile) with no recipe, then
-            # parser.apply(recipe) which doesn't exist.
-            # Correct API: pass recipe= at construction time.
             parser = DicomParser(str(infile), recipe=self.recipe)
 
+            # Capture pre-de-identification snapshot if requested
+            pre_snapshot = None
+            if self.capture_headers:
+                from header_reid import snapshot_from_pydicom, write_reid_json
+                pre_snapshot = snapshot_from_pydicom(parser.dicom)
+                
             # ── STEP 2: Define var: substitutions before parse() ────────────
             # Any `var:name` reference in the recipe must be defined here,
             # otherwise deid silently skips the action.
@@ -182,10 +193,26 @@ class DeidEngine:
                 remove_private=self.remove_private,
             )
 
-            # ── STEP 4: Save ─────────────────────────────────────────────────
+            # ── STEP 4: Save and Make Mapping JSON ───────────────────────────
             parser.save(str(outfile))
+            
+            # Write re-identification mapping document if capture is enabled
+            reid_path = None
+            if self.capture_headers and pre_snapshot is not None:
+                post_ds = pydicom.dcmread(str(outfile), stop_before_pixels=True)
+                post_snapshot = snapshot_from_pydicom(post_ds)
+                reid_dir = self.header_output_dir or outfile.parent
+                reid_path = reid_dir / (outfile.stem + ".reid.json")
+                write_reid_json(
+                    pre_snapshot=pre_snapshot,
+                    post_snapshot=post_snapshot,
+                    uid_keys=["SOPInstanceUID", "StudyInstanceUID", "SeriesInstanceUID"],
+                    output_path=reid_path,
+                    source_file=str(infile),
+                    format_label="DICOM",
+                )
             logger.info("De-identified: %s → %s", infile.name, outfile)
-            return FileResult(infile, outfile, success=True)
+            return FileResult(infile, outfile, success=True, reid_path=reid_path)
 
         except Exception as exc:  # noqa: BLE001
             msg = f"{type(exc).__name__}: {exc}"
