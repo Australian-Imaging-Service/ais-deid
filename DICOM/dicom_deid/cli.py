@@ -118,6 +118,23 @@ def main(ctx: click.Context, verbose: bool) -> None:
     default=False,
     help="Do NOT strip nested sequence tags. Not recommended.",
 )
+@click.option(
+    "--capture-headers / --no-capture-headers",
+    default=False,
+    envvar="DEID_CAPTURE_HEADERS",
+    help="Write a re-identification mapping JSON alongside each de-identified file.",
+)
+@click.option(
+    "--header-output-dir",
+    default=None,
+    type=click.Path(file_okay=False, path_type=Path),
+    envvar="DEID_HEADER_OUTPUT_DIR",
+    help=(
+        "Directory to write re-identification JSON files. "
+        "Defaults to the same directory as each de-identified DICOM. "
+        "Also reads DEID_HEADER_OUTPUT_DIR env var."
+    ),
+)
 @click.pass_context
 def process(
     ctx: click.Context,
@@ -128,6 +145,8 @@ def process(
     glob: str,
     no_remove_private: bool,
     no_strip_sequences: bool,
+    capture_headers: bool,
+    header_output_dir: Path | None,
 ) -> None:
     """
     De-identify all DICOM files under INPUT_DIR and write to OUTPUT_DIR.
@@ -158,6 +177,8 @@ def process(
         recipe_path=recipe,
         remove_private=not no_remove_private,
         strip_sequences=not no_strip_sequences,
+        capture_headers=capture_headers,
+        header_output_dir=header_output_dir,
     )
 
     run = engine.process_directory(input_dir, output_dir, glob=glob)
@@ -173,10 +194,13 @@ def process(
 
     for result in run.results:
         if result.success:
+            detail = f"→ {result.output_path}"
+            if result.reid_path:
+                detail += f" | reid → {result.reid_path}"
             table.add_row(
                 "[green]OK[/green]",
                 str(result.input_path.name),
-                f"→ {result.output_path}",
+                detail,
             )
         else:
             table.add_row(
