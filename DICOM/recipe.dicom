@@ -6,6 +6,11 @@ FORMAT dicom
 # DICOM PS 3.15 Annex E requires this tag to be set to YES
 ADD PatientIdentityRemoved YES
 
+# ── Linkage UIDs — explicitly preserved for re-identification mapping ────────
+KEEP StudyInstanceUID
+KEEP SeriesInstanceUID
+KEEP SOPInstanceUID
+
 # ── Patient identity ─────────────────────────────────────────────────────────
 # Values are computed in engine.py variable builders and injected via var:
 KEEP PatientID   # REPLACE PatientID var:anon_patient_id # Use if there is a method for keeping salt confidential.
