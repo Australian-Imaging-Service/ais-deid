@@ -1,5 +1,5 @@
 """
-header-reid.py
+header_reid.py
 --------------
 Format-agnostic re-identification mapping module.
 
@@ -490,10 +490,10 @@ def snapshot_from_pydicom(dataset: Any, include_private: bool = True) -> dict[st
 
 def _cli() -> None:
     """
-    Command-line interface for header-reid.py.
+    Command-line interface for header_reid.py.
 
     Usage:
-        python header-reid.py --pre pre.json --post post.json \\
+        python header_reid.py --pre pre.json --post post.json \\
             --uids SOPInstanceUID StudyInstanceUID SeriesInstanceUID \\
             --output output/image.reid.json \\
             --source input/image.dcm \\
