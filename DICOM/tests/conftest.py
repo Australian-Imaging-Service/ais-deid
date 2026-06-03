@@ -156,14 +156,16 @@ def output_dir(tmp_path: Path) -> Path:
     out.mkdir()
     return out
 
-
-@pytest.fixture(autouse=True)
-def set_deid_salt(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    Set DEID_SALT for all tests so transforms don't raise RuntimeError.
-    Never use this value outside of testing.
-    """
-    monkeypatch.setenv("DEID_SALT", "test_salt_do_not_use_in_production_abc123")
+# Salt fixture — CURRENTLY DISABLED
+# TO RE-ENABLE: uncomment this fixture once salting is re-enabled in transforms.py
+# This fixture sets a test-only salt so tests do not require DEID_SALT in the environment.
+#@pytest.fixture(autouse=True)
+#def set_deid_salt(monkeypatch: pytest.MonkeyPatch) -> None:
+#    """
+#    Set DEID_SALT for all tests so transforms don't raise RuntimeError.
+#    Never use this value outside of testing.
+#    """
+#    monkeypatch.setenv("DEID_SALT", "test_salt_do_not_use_in_production_abc123")
 
 
 @pytest.fixture()
