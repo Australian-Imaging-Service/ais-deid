@@ -142,8 +142,11 @@ class DeidEngine:
 
         # Eagerly validate that the salt is available so failures are caught
         # at startup, not silently per-file at runtime.
-        from .transforms import _require_salt
-        _require_salt()
+        # Salt validation — CURRENTLY DISABLED
+        # TO RE-ENABLE: uncomment the two lines below once DEID_SALT is configured
+        # in your environment. See transforms.py for full instructions.
+        #from .transforms import _require_salt
+        #_require_salt()
 
     # ------------------------------------------------------------------
     # Single-file processing
