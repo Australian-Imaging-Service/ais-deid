@@ -34,7 +34,7 @@ class TestMainGroup:
 
 class TestProcessCommand:
     def test_basic_run_succeeds(
-        self, runner, dicom_dir, output_dir, recipe_path, set_deid_salt
+        self, runner, dicom_dir, output_dir, recipe_path, #set_deid_salt
     ):
         result = runner.invoke(main, [
             "process",
@@ -72,7 +72,7 @@ class TestProcessCommand:
         assert result.exit_code != 0
 
     def test_recipe_envvar_honoured(
-        self, runner, dicom_dir, output_dir, recipe_path, set_deid_salt
+        self, runner, dicom_dir, output_dir, recipe_path, #set_deid_salt
     ):
         """--recipe can be omitted when DEID_RECIPE env var is set."""
         result = runner.invoke(
@@ -84,7 +84,7 @@ class TestProcessCommand:
         assert result.exit_code == 0
 
     def test_verbose_flag_produces_debug_output(
-        self, runner, dicom_dir, output_dir, recipe_path, set_deid_salt
+        self, runner, dicom_dir, output_dir, recipe_path, #set_deid_salt
     ):
         result = runner.invoke(main, [
             "--verbose",
