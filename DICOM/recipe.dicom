@@ -37,7 +37,7 @@ JITTER SeriesDate var:date_jitter
 JITTER AcquisitionDate var:date_jitter
 JITTER ContentDate var:date_jitter
 JITTER InstanceCreationDate var:date_jitter
-JITTER PatientBirthDate var:date_jitter
+#JITTER PatientBirthDate var:date_jitter
 JITTER endswith:Date var:date_jitter
 
 # ── Times — zero out (preserve relative ordering within a study) ──────────────
