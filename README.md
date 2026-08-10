@@ -218,7 +218,7 @@ ais-deid/
 └── recipe.dicom
 ```
 
-**ais-deid: Repo root**
+`**ais-deid: Repo root**`
 
 - **`pyproject.toml`** — The project's packaging, dependencies, and tooling configuration. Declares the package name (`ais-deid`), version, and Python requirement (≥3.10). Lists runtime dependencies (`deid`, `pydicom`, `click`, `rich`) and dev dependencies (`pytest`, `pytest-cov`, `flake8`, `pre-commit`). Registers the `dicom-deid` shell command as an entry point pointing at `ais_deid.dicom.cli:main`, so it's available system-wide after `pip install`. Also configures pytest's test paths and coverage settings.
 - **`recipe.dicom`** — The de-identification rule file consumed by the `deid` library. Written in deid's plain-text recipe language, it defines an action for every category of PHI tag: patient identity (REPLACE/BLANK/REMOVE), dates (JITTER), times (BLANK), physician/operator/institution names (REMOVE), device identifiers (REMOVE), request/order fields (REMOVE), protocol descriptions (BLANK), secondary UIDs (REMOVE), sequences (REMOVE), and free-text comment fields (BLANK). Uses `var:` placeholders for values computed at runtime (e.g. `var:anon_patient_id`), injected by the engine. Field expanders like `endswith:Date` and `contains:PhysicianName` apply rules to whole groups of tags with a single line. This is the primary file to edit when adjusting what gets removed or changed.
