@@ -10,7 +10,6 @@ Data types covered: DICOM only.
 > (the DICOM-specific tool within this package — more domains may be added
 > under the `ais-deid` name in future).
 
-i.e. 
 | Use                                         | Name         |
 |---------------------------------------------|--------------|
 | PyPI package (what you pip-install)         | `ais-deid`   |
