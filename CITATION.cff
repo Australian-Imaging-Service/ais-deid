@@ -5,7 +5,7 @@ version: 0.1.0
 date-released: 2026-08-10
 authors:
   - family-names: Murray
-    given-names: Kirsten
+    given-names: Kirsten (Kirsty)
     affiliation: University of Newcastle
     orcid: "https://orcid.org/0000-0001-7975-5518"   # if you have one
 repository-code: "https://github.com/Australian-Imaging-Service/ais-deid"
