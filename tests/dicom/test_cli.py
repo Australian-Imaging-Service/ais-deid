@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from dicom_deid.cli import main
+from ais_deid.dicom.cli import main
 
 
 @pytest.fixture()
@@ -51,7 +51,7 @@ class TestProcessCommand:
 #    def test_missing_salt_exits_nonzero(
 #        self, runner, dicom_dir, output_dir, recipe_path, monkeypatch
 #    ):
-#        import dicom_deid.transforms as t
+#        import ais_deid.dicom.transforms as t
 #        monkeypatch.setattr(t, "_SALT", None)
 #        result = runner.invoke(main, [
 #            "process",

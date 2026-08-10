@@ -18,42 +18,16 @@ All tests are self-contained and use only synthetic data — no real patient
 files are required.
 """
 
-import importlib.util
 import json
 import copy
-from pathlib import Path
-
 import pydicom
 import pydicom.uid
 import pytest
 from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.sequence import Sequence
+from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Load header_reid module via importlib (handles the hyphen in filename)
-# The tests directory sits alongside header_reid.py, so we resolve relative
-# to this file's location.
-# ---------------------------------------------------------------------------
-
-def _load_header_reid():
-    """Load header_reid.py regardless of whether it uses a hyphen or underscore."""
-    candidates = [
-        Path(__file__).parent / "header_reid.py",
-        Path(__file__).parent / "header-reid.py",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            spec = importlib.util.spec_from_file_location("header_reid", candidate)
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            return mod
-    raise ImportError(
-        "Could not find header_reid.py or header-reid.py in the same directory "
-        "as test_header_reid.py. Ensure the file is present."
-    )
-
-
-hr = _load_header_reid()
+from ais_deid.dicom import header_reid
 
 
 # ---------------------------------------------------------------------------
@@ -148,46 +122,46 @@ class TestSerialise:
     """Tests for _serialise() — ensures values are JSON-safe."""
 
     def test_string_passthrough(self):
-        assert hr._serialise("hello") == "hello"
+        assert header_reid._serialise("hello") == "hello"
 
     def test_int_passthrough(self):
-        assert hr._serialise(42) == 42
+        assert header_reid._serialise(42) == 42
 
     def test_float_passthrough(self):
-        assert hr._serialise(3.14) == 3.14
+        assert header_reid._serialise(3.14) == 3.14
 
     def test_bool_passthrough(self):
-        assert hr._serialise(True) is True
+        assert header_reid._serialise(True) is True
 
     def test_none_passthrough(self):
-        assert hr._serialise(None) is None
+        assert header_reid._serialise(None) is None
 
     def test_list_recursed(self):
-        assert hr._serialise([1, "two", 3.0]) == [1, "two", 3.0]
+        assert header_reid._serialise([1, "two", 3.0]) == [1, "two", 3.0]
 
     def test_tuple_becomes_list(self):
-        result = hr._serialise((1, 2, 3))
+        result = header_reid._serialise((1, 2, 3))
         assert result == [1, 2, 3]
         assert isinstance(result, list)
 
     def test_dict_recursed(self):
-        result = hr._serialise({"a": 1, "b": [2, 3]})
+        result = header_reid._serialise({"a": 1, "b": [2, 3]})
         assert result == {"a": 1, "b": [2, 3]}
 
     def test_dict_keys_become_strings(self):
-        result = hr._serialise({1: "one", 2: "two"})
+        result = header_reid._serialise({1: "one", 2: "two"})
         assert "1" in result
         assert "2" in result
 
     def test_unknown_type_becomes_string(self):
         class Custom:
             def __str__(self): return "custom_value"
-        result = hr._serialise(Custom())
+        result = header_reid._serialise(Custom())
         assert result == "custom_value"
         assert isinstance(result, str)
 
     def test_nested_structure(self):
-        result = hr._serialise({"key": [{"inner": 42}]})
+        result = header_reid._serialise({"key": [{"inner": 42}]})
         assert result == {"key": [{"inner": 42}]}
 
 
@@ -199,22 +173,22 @@ class TestValuesEqual:
     """Tests for _values_equal() — normalised string comparison."""
 
     def test_equal_strings(self):
-        assert hr._values_equal("hello", "hello") is True
+        assert header_reid._values_equal("hello", "hello") is True
 
     def test_unequal_strings(self):
-        assert hr._values_equal("hello", "world") is False
+        assert header_reid._values_equal("hello", "world") is False
 
     def test_int_vs_string(self):
-        assert hr._values_equal(0, "0") is True
+        assert header_reid._values_equal(0, "0") is True
 
     def test_whitespace_stripped(self):
-        assert hr._values_equal("  hello  ", "hello") is True
+        assert header_reid._values_equal("  hello  ", "hello") is True
 
     def test_different_values_not_equal(self):
-        assert hr._values_equal("Smith^John", "ANONYMOUS") is False
+        assert header_reid._values_equal("Smith^John", "ANONYMOUS") is False
 
     def test_empty_strings_equal(self):
-        assert hr._values_equal("", "") is True
+        assert header_reid._values_equal("", "") is True
 
 
 # ---------------------------------------------------------------------------
@@ -225,44 +199,44 @@ class TestDiffSnapshots:
     """Tests for diff_snapshots() — the core comparison logic."""
 
     def test_returns_four_categories(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert set(result.keys()) == {"modified", "removed", "blanked", "added"}
 
     def test_modified_tag_detected(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert "PatientName" in result["modified"]
 
     def test_modified_records_original_value(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert result["modified"]["PatientName"] == "Smith^John"
 
     def test_removed_tag_detected(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert "InstitutionName" in result["removed"]
 
     def test_removed_records_original_value(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert result["removed"]["InstitutionName"] == "Newcastle General Hospital"
 
     def test_blanked_tag_detected(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert "PatientBirthDate" in result["blanked"]
         assert "StudyDescription" in result["blanked"]
 
     def test_blanked_records_original_value(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert result["blanked"]["PatientBirthDate"] == "19870420"
 
     def test_added_tag_detected(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert "PatientIdentityRemoved" in result["added"]
 
     def test_added_records_new_value(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         assert result["added"]["PatientIdentityRemoved"] == "YES"
 
     def test_unchanged_tag_not_recorded(self, simple_pre, simple_post):
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         all_changed = (
             set(result["modified"])
             | set(result["removed"])
@@ -274,7 +248,7 @@ class TestDiffSnapshots:
 
     def test_kept_patient_id_not_recorded(self, simple_pre, simple_post):
         """PatientID is KEEP in the recipe — must not appear in any change category."""
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         all_changed = (
             set(result["modified"])
             | set(result["removed"])
@@ -285,7 +259,7 @@ class TestDiffSnapshots:
 
     def test_uids_not_recorded_when_unchanged(self, simple_pre, simple_post):
         """Preserved UIDs must not appear in the diff."""
-        result = hr.diff_snapshots(simple_pre, simple_post)
+        result = header_reid.diff_snapshots(simple_pre, simple_post)
         all_changed = (
             set(result["modified"])
             | set(result["removed"])
@@ -297,13 +271,13 @@ class TestDiffSnapshots:
         assert "SeriesInstanceUID" not in all_changed
 
     def test_empty_snapshots_return_empty_diff(self):
-        result = hr.diff_snapshots({}, {})
+        result = header_reid.diff_snapshots({}, {})
         assert all(len(v) == 0 for v in result.values())
 
     def test_all_tags_removed(self):
         pre  = {"TagA": "val_a", "TagB": "val_b"}
         post = {}
-        result = hr.diff_snapshots(pre, post)
+        result = header_reid.diff_snapshots(pre, post)
         assert "TagA" in result["removed"]
         assert "TagB" in result["removed"]
         assert len(result["modified"]) == 0
@@ -312,7 +286,7 @@ class TestDiffSnapshots:
     def test_all_tags_added(self):
         pre  = {}
         post = {"TagA": "val_a", "TagB": "val_b"}
-        result = hr.diff_snapshots(pre, post)
+        result = header_reid.diff_snapshots(pre, post)
         assert "TagA" in result["added"]
         assert "TagB" in result["added"]
         assert len(result["removed"]) == 0
@@ -321,7 +295,7 @@ class TestDiffSnapshots:
         """int 0 and string '0' should be considered equal."""
         pre  = {"Tag": 0}
         post = {"Tag": "0"}
-        result = hr.diff_snapshots(pre, post)
+        result = header_reid.diff_snapshots(pre, post)
         assert "Tag" not in result["modified"]
 
     def test_blanked_vs_removed_distinction(self):
@@ -329,7 +303,7 @@ class TestDiffSnapshots:
         pre  = {"TagA": "value", "TagB": "value"}
         post = {"TagA": ""}  # blanked — present but empty
         # TagB absent from post — removed
-        result = hr.diff_snapshots(pre, post)
+        result = header_reid.diff_snapshots(pre, post)
         assert "TagA" in result["blanked"]
         assert "TagB" in result["removed"]
         assert "TagA" not in result["removed"]
@@ -344,36 +318,36 @@ class TestExtractLinkageUids:
     """Tests for extract_linkage_uids()."""
 
     def test_extracts_present_uids(self, simple_post, uid_keys):
-        uids = hr.extract_linkage_uids(simple_post, uid_keys)
+        uids = header_reid.extract_linkage_uids(simple_post, uid_keys)
         assert uids["SOPInstanceUID"] == "1.2.3.4.5"
         assert uids["StudyInstanceUID"] == "1.2.3.4.6"
         assert uids["SeriesInstanceUID"] == "1.2.3.4.7"
 
     def test_missing_uid_recorded_as_not_present(self):
         post = {"SOPInstanceUID": "1.2.3"}
-        uids = hr.extract_linkage_uids(
+        uids = header_reid.extract_linkage_uids(
             post, ["SOPInstanceUID", "StudyInstanceUID"]
         )
         assert uids["SOPInstanceUID"] == "1.2.3"
         assert uids["StudyInstanceUID"] == "<not present>"
 
     def test_all_uids_missing(self):
-        uids = hr.extract_linkage_uids({}, ["SOPInstanceUID"])
+        uids = header_reid.extract_linkage_uids({}, ["SOPInstanceUID"])
         assert uids["SOPInstanceUID"] == "<not present>"
 
     def test_returns_strings(self, simple_post, uid_keys):
-        uids = hr.extract_linkage_uids(simple_post, uid_keys)
+        uids = header_reid.extract_linkage_uids(simple_post, uid_keys)
         for v in uids.values():
             assert isinstance(v, str)
 
     def test_empty_uid_keys(self, simple_post):
-        uids = hr.extract_linkage_uids(simple_post, [])
+        uids = header_reid.extract_linkage_uids(simple_post, [])
         assert uids == {}
 
     def test_reads_from_post_not_pre(self):
         """UIDs must come from post snapshot, not pre."""
         post = {"SOPInstanceUID": "post-uid-value"}
-        uids = hr.extract_linkage_uids(post, ["SOPInstanceUID"])
+        uids = header_reid.extract_linkage_uids(post, ["SOPInstanceUID"])
         assert uids["SOPInstanceUID"] == "post-uid-value"
 
 
@@ -385,11 +359,11 @@ class TestBuildReidDocument:
     """Tests for build_reid_document()."""
 
     def test_returns_dict(self, simple_pre, simple_post, uid_keys):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert isinstance(doc, dict)
 
     def test_required_top_level_keys(self, simple_pre, simple_post, uid_keys):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert "created_at" in doc
         assert "format" in doc
         assert "source_file" in doc
@@ -397,13 +371,13 @@ class TestBuildReidDocument:
         assert "changes" in doc
 
     def test_format_label_recorded(self, simple_pre, simple_post, uid_keys):
-        doc = hr.build_reid_document(
+        doc = header_reid.build_reid_document(
             simple_pre, simple_post, uid_keys, format_label="DICOM"
         )
         assert doc["format"] == "DICOM"
 
     def test_source_file_recorded(self, simple_pre, simple_post, uid_keys):
-        doc = hr.build_reid_document(
+        doc = header_reid.build_reid_document(
             simple_pre, simple_post, uid_keys,
             source_file="input/image.dcm"
         )
@@ -412,11 +386,11 @@ class TestBuildReidDocument:
     def test_source_file_none_when_not_provided(
         self, simple_pre, simple_post, uid_keys
     ):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert doc["source_file"] is None
 
     def test_created_at_is_utc_iso8601(self, simple_pre, simple_post, uid_keys):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         ts = doc["created_at"]
         assert ts.endswith("Z")
         assert "T" in ts
@@ -425,12 +399,12 @@ class TestBuildReidDocument:
         datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
 
     def test_linkage_uids_present(self, simple_pre, simple_post, uid_keys):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert "SOPInstanceUID" in doc["linkage_uids"]
         assert doc["linkage_uids"]["SOPInstanceUID"] == "1.2.3.4.5"
 
     def test_changes_structure(self, simple_pre, simple_post, uid_keys):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert set(doc["changes"].keys()) == {
             "modified", "removed", "blanked", "added"
         }
@@ -438,42 +412,42 @@ class TestBuildReidDocument:
     def test_modified_contains_original_patient_name(
         self, simple_pre, simple_post, uid_keys
     ):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert doc["changes"]["modified"]["PatientName"] == "Smith^John"
 
     def test_removed_contains_institution(
         self, simple_pre, simple_post, uid_keys
     ):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert "InstitutionName" in doc["changes"]["removed"]
 
     def test_blanked_contains_birth_date(
         self, simple_pre, simple_post, uid_keys
     ):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert "PatientBirthDate" in doc["changes"]["blanked"]
         assert doc["changes"]["blanked"]["PatientBirthDate"] == "19870420"
 
     def test_added_contains_patient_identity_removed(
         self, simple_pre, simple_post, uid_keys
     ):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         assert "PatientIdentityRemoved" in doc["changes"]["added"]
 
     def test_raises_on_empty_pre_snapshot(self, simple_post, uid_keys):
         with pytest.raises(ValueError, match="pre_snapshot"):
-            hr.build_reid_document({}, simple_post, uid_keys)
+            header_reid.build_reid_document({}, simple_post, uid_keys)
 
     def test_raises_on_empty_post_snapshot(self, simple_pre, uid_keys):
         with pytest.raises(ValueError, match="post_snapshot"):
-            hr.build_reid_document(simple_pre, {}, uid_keys)
+            header_reid.build_reid_document(simple_pre, {}, uid_keys)
 
     def test_raises_on_empty_uid_keys(self, simple_pre, simple_post):
         with pytest.raises(ValueError, match="uid_keys"):
-            hr.build_reid_document(simple_pre, simple_post, [])
+            header_reid.build_reid_document(simple_pre, simple_post, [])
 
     def test_twix_format_label(self, simple_pre, simple_post):
-        doc = hr.build_reid_document(
+        doc = header_reid.build_reid_document(
             simple_pre, simple_post,
             uid_keys=["SOPInstanceUID"],
             format_label="TWIX",
@@ -483,7 +457,7 @@ class TestBuildReidDocument:
     def test_document_is_json_serialisable(
         self, simple_pre, simple_post, uid_keys
     ):
-        doc = hr.build_reid_document(simple_pre, simple_post, uid_keys)
+        doc = header_reid.build_reid_document(simple_pre, simple_post, uid_keys)
         # Should not raise
         serialised = json.dumps(doc)
         assert len(serialised) > 0
@@ -498,17 +472,17 @@ class TestWriteReidJson:
 
     def test_file_created(self, tmp_path, simple_pre, simple_post, uid_keys):
         out = tmp_path / "test.reid.json"
-        hr.write_reid_json(simple_pre, simple_post, uid_keys, out)
+        header_reid.write_reid_json(simple_pre, simple_post, uid_keys, out)
         assert out.exists()
 
     def test_returns_path(self, tmp_path, simple_pre, simple_post, uid_keys):
         out = tmp_path / "test.reid.json"
-        result = hr.write_reid_json(simple_pre, simple_post, uid_keys, out)
+        result = header_reid.write_reid_json(simple_pre, simple_post, uid_keys, out)
         assert result == out
 
     def test_output_is_valid_json(self, tmp_path, simple_pre, simple_post, uid_keys):
         out = tmp_path / "test.reid.json"
-        hr.write_reid_json(simple_pre, simple_post, uid_keys, out)
+        header_reid.write_reid_json(simple_pre, simple_post, uid_keys, out)
         with open(out, encoding="utf-8") as f:
             doc = json.load(f)
         assert isinstance(doc, dict)
@@ -517,7 +491,7 @@ class TestWriteReidJson:
         self, tmp_path, simple_pre, simple_post, uid_keys
     ):
         out = tmp_path / "test.reid.json"
-        hr.write_reid_json(simple_pre, simple_post, uid_keys, out)
+        header_reid.write_reid_json(simple_pre, simple_post, uid_keys, out)
         with open(out) as f:
             doc = json.load(f)
         assert "linkage_uids" in doc
@@ -528,21 +502,21 @@ class TestWriteReidJson:
         self, tmp_path, simple_pre, simple_post, uid_keys
     ):
         out = tmp_path / "a" / "b" / "c" / "test.reid.json"
-        hr.write_reid_json(simple_pre, simple_post, uid_keys, out)
+        header_reid.write_reid_json(simple_pre, simple_post, uid_keys, out)
         assert out.exists()
 
     def test_accepts_string_path(
         self, tmp_path, simple_pre, simple_post, uid_keys
     ):
         out = str(tmp_path / "test.reid.json")
-        hr.write_reid_json(simple_pre, simple_post, uid_keys, out)
+        header_reid.write_reid_json(simple_pre, simple_post, uid_keys, out)
         assert Path(out).exists()
 
     def test_format_label_in_output(
         self, tmp_path, simple_pre, simple_post, uid_keys
     ):
         out = tmp_path / "test.reid.json"
-        hr.write_reid_json(
+        header_reid.write_reid_json(
             simple_pre, simple_post, uid_keys, out, format_label="DICOM"
         )
         with open(out) as f:
@@ -553,7 +527,7 @@ class TestWriteReidJson:
         self, tmp_path, simple_pre, simple_post, uid_keys
     ):
         out = tmp_path / "test.reid.json"
-        hr.write_reid_json(
+        header_reid.write_reid_json(
             simple_pre, simple_post, uid_keys, out,
             source_file="input/image.dcm"
         )
@@ -566,7 +540,7 @@ class TestWriteReidJson:
         pre  = {"PatientName": "Müller^Hans", "SOPInstanceUID": "1.2.3"}
         post = {"PatientName": "ANONYMOUS",   "SOPInstanceUID": "1.2.3"}
         out = tmp_path / "unicode.reid.json"
-        hr.write_reid_json(pre, post, ["SOPInstanceUID"], out)
+        header_reid.write_reid_json(pre, post, ["SOPInstanceUID"], out)
         with open(out, encoding="utf-8") as f:
             doc = json.load(f)
         assert doc["changes"]["modified"]["PatientName"] == "Müller^Hans"
@@ -581,61 +555,61 @@ class TestSnapshotFromPydicom:
 
     def test_returns_dict(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         assert isinstance(snap, dict)
 
     def test_patient_name_included(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         assert "PatientName" in snap
         assert snap["PatientName"] == "Smith^John"
 
     def test_patient_id_included(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         assert "PatientID" in snap
         assert snap["PatientID"] == "PAT-001"
 
     def test_pixel_data_excluded(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom))
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         assert "PixelData" not in snap
 
     def test_private_tags_included_by_default(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds, include_private=True)
+        snap = header_reid.snapshot_from_pydicom(ds, include_private=True)
         private_keys = [k for k in snap if k.startswith("(")]
         assert len(private_keys) > 0
 
     def test_private_tags_excluded_when_requested(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds, include_private=False)
+        snap = header_reid.snapshot_from_pydicom(ds, include_private=False)
         private_keys = [k for k in snap if k.startswith("(")]
         assert len(private_keys) == 0
 
     def test_sequence_serialised_as_list(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         assert "ReferencedStudySequence" in snap
         assert isinstance(snap["ReferencedStudySequence"], list)
         assert isinstance(snap["ReferencedStudySequence"][0], dict)
 
     def test_all_values_are_json_serialisable(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         # Should not raise
         json.dumps(snap)
 
     def test_uids_present_in_snapshot(self, synthetic_dicom):
         ds = pydicom.dcmread(str(synthetic_dicom), stop_before_pixels=True)
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         assert "SOPInstanceUID" in snap
         assert "StudyInstanceUID" in snap
         assert "SeriesInstanceUID" in snap
 
     def test_empty_dataset_returns_empty_dict(self):
         ds = Dataset()
-        snap = hr.snapshot_from_pydicom(ds)
+        snap = header_reid.snapshot_from_pydicom(ds)
         assert isinstance(snap, dict)
         assert len(snap) == 0
 
@@ -653,12 +627,12 @@ class TestEndToEnd:
     def test_full_pipeline_produces_valid_document(
         self, synthetic_dicom, tmp_path
     ):
-        """Simulate the full dicom_deid + header_reid pipeline."""
+        """Simulate the full ais_deid.dicom + header_reid pipeline."""
         # Pre-snapshot
         original_ds = pydicom.dcmread(
             str(synthetic_dicom), stop_before_pixels=True
         )
-        pre = hr.snapshot_from_pydicom(original_ds)
+        pre = header_reid.snapshot_from_pydicom(original_ds)
 
         # Simulate de-identification
         deid_ds = copy.deepcopy(original_ds)
@@ -670,10 +644,10 @@ class TestEndToEnd:
         deid_ds.PatientIdentityRemoved = "YES"
 
         # Post-snapshot
-        post = hr.snapshot_from_pydicom(deid_ds)
+        post = header_reid.snapshot_from_pydicom(deid_ds)
 
         # Build document
-        doc = hr.build_reid_document(
+        doc = header_reid.build_reid_document(
             pre_snapshot=pre,
             post_snapshot=post,
             uid_keys=["SOPInstanceUID", "StudyInstanceUID", "SeriesInstanceUID"],
@@ -704,13 +678,13 @@ class TestEndToEnd:
         original_ds = pydicom.dcmread(
             str(synthetic_dicom), stop_before_pixels=True
         )
-        pre = hr.snapshot_from_pydicom(original_ds)
+        pre = header_reid.snapshot_from_pydicom(original_ds)
 
         deid_ds = copy.deepcopy(original_ds)
         deid_ds.PatientName = "ANONYMOUS"
-        post = hr.snapshot_from_pydicom(deid_ds)
+        post = header_reid.snapshot_from_pydicom(deid_ds)
 
-        doc = hr.build_reid_document(
+        doc = header_reid.build_reid_document(
             pre_snapshot=pre,
             post_snapshot=post,
             uid_keys=["SOPInstanceUID", "StudyInstanceUID", "SeriesInstanceUID"],
@@ -729,13 +703,13 @@ class TestEndToEnd:
         original_ds = pydicom.dcmread(
             str(synthetic_dicom), stop_before_pixels=True
         )
-        pre = hr.snapshot_from_pydicom(original_ds)
+        pre = header_reid.snapshot_from_pydicom(original_ds)
 
         deid_ds = copy.deepcopy(original_ds)
         deid_ds.PatientName = "ANONYMOUS"
-        post = hr.snapshot_from_pydicom(deid_ds)
+        post = header_reid.snapshot_from_pydicom(deid_ds)
 
-        doc = hr.build_reid_document(
+        doc = header_reid.build_reid_document(
             pre_snapshot=pre,
             post_snapshot=post,
             uid_keys=["SOPInstanceUID", "StudyInstanceUID", "SeriesInstanceUID"],
@@ -752,15 +726,15 @@ class TestEndToEnd:
         original_ds = pydicom.dcmread(
             str(synthetic_dicom), stop_before_pixels=True
         )
-        pre = hr.snapshot_from_pydicom(original_ds)
+        pre = header_reid.snapshot_from_pydicom(original_ds)
 
         deid_ds = copy.deepcopy(original_ds)
         deid_ds.PatientName = "ANONYMOUS"
         deid_ds.PatientBirthDate = ""
-        post = hr.snapshot_from_pydicom(deid_ds)
+        post = header_reid.snapshot_from_pydicom(deid_ds)
 
         out = tmp_path / "test.reid.json"
-        hr.write_reid_json(
+        header_reid.write_reid_json(
             pre_snapshot=pre,
             post_snapshot=post,
             uid_keys=["SOPInstanceUID", "StudyInstanceUID", "SeriesInstanceUID"],
