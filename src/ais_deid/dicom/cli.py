@@ -27,7 +27,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
 
-from . import __version__
+from ais_deid import __version__
 from .engine import DeidEngine
 
 # ---------------------------------------------------------------------------

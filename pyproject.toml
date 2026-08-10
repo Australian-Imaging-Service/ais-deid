@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ais-deid"
-version = "0.1.1"
+dynamic = ["version"]
 description = "De-identify DICOM metadata using pydicom/deid"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,6 +22,9 @@ dependencies = [
     "click>=8.1",
     "rich>=13.0",          # coloured logging / progress bars
 ]
+
+[tool.hatch.version]
+path = "src/ais_deid/__init__.py"
 
 [project.optional-dependencies]
 dev = [
