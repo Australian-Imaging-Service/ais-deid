@@ -22,9 +22,6 @@ i.e.
 
 De-identify DICOM metadata using [pydicom/deid](https://pydicom.github.io/deid/).
 
-[![CI/CD](https://github.com/your-org/dicom-deid/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/your-org/dicom-deid/actions)
-[![codecov](https://codecov.io/gh/your-org/dicom-deid/badge.svg)](https://codecov.io/gh/your-org/dicom-deid)
-
 ---
 
 ## Features
