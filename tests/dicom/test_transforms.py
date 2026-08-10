@@ -1,7 +1,7 @@
 """
 test_transforms.py
 ------------------
-Unit tests for dicom_deid.transforms.
+Unit tests for ais_deid.dicom.transforms.
 
 Tests are isolated — they do not touch the filesystem or real DICOM files.
 """
@@ -11,7 +11,7 @@ import os
 
 import pytest
 
-from dicom_deid.transforms import (
+from ais_deid.dicom.transforms import (
     _hash,
     blank_if_present,
     hash_accession_number,
@@ -41,7 +41,7 @@ class TestHashFunction:
 
 # def test_salt_changes_output(self, monkeypatch):
 #     """Different DEID_SALT produces different hash for the same input."""
-#     import dicom_deid.transforms as t
+#     import ais_deid.dicom.transforms as t
 #     result_a = t._hash("PID001")
 #     monkeypatch.setattr(t, "_SALT", "totally_different_salt_xyz")
 #     result_b = t._hash("PID001")
@@ -49,7 +49,7 @@ class TestHashFunction:
 
 # def test_requires_salt(self, monkeypatch):
 #     """RuntimeError raised when _SALT is None."""
-#     import dicom_deid.transforms as t
+#     import ais_deid.dicom.transforms as t
 #     monkeypatch.setattr(t, "_SALT", None)
 #     with pytest.raises(RuntimeError, match="DEID_SALT"):
 #         t._hash("anything")

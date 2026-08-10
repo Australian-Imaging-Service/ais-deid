@@ -7,7 +7,7 @@ WORKDIR /build
 RUN pip install --no-cache-dir hatch
 
 COPY pyproject.toml README.md ./
-COPY dicom_deid/ ./dicom_deid/
+COPY src/ ./src/
 
 RUN hatch build --target wheel
 
@@ -15,7 +15,7 @@ RUN hatch build --target wheel
 # ── Stage 2: runtime ─────────────────────────────────────────────────────────
 FROM python:3.11-slim AS runtime
 
-LABEL org.opencontainers.image.title="dicom-deid"
+LABEL org.opencontainers.image.title="ais-deid"
 LABEL org.opencontainers.image.description="DICOM de-identification using pydicom/deid"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 

@@ -12,7 +12,7 @@ from pathlib import Path
 import pydicom
 import pytest
 
-from dicom_deid.engine import DeidEngine, FileResult, RunResult
+from ais_deid.dicom.engine import DeidEngine, FileResult, RunResult
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +210,7 @@ class TestProcessDirectory:
 
 class TestRunResult:
     def test_successes_and_failures_partitioned(self):
-        from dicom_deid.engine import FileResult
+        from ais_deid.dicom.engine import FileResult
         run = RunResult()
         run.results = [
             FileResult(Path("a"), Path("b"), success=True),

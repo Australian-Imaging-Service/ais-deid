@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dicom-deid"
+name = "ais-deid"
 version = "0.1.0"
 description = "De-identify DICOM metadata using pydicom/deid"
 readme = "README.md"
@@ -29,16 +29,16 @@ dev = [
 
 # Installs the `dicom-deid` shell command
 [project.scripts]
-dicom-deid = "dicom_deid.cli:main"
+dicom-deid = "ais_deid.dicom.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["dicom_deid"]
+packages = ["src/ais_deid"]
 
 # ── Flake8 (via .flake8 file) ──────────────────────────────────────────────
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts   = "--cov=dicom_deid --cov-report=term-missing -v"
+addopts   = "--cov=ais_deid.dicom --cov-report=term-missing -v"
 
 [tool.coverage.run]
-source = ["dicom_deid"]
+source = ["src/ais_deid"]
 omit   = ["tests/*"]

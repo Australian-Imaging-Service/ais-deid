@@ -171,7 +171,7 @@ def output_dir(tmp_path: Path) -> Path:
 @pytest.fixture()
 def recipe_path() -> Path:
     """Path to the project recipe file."""
-    candidate = Path(__file__).parent.parent / "recipe.dicom"
+    candidate = Path(__file__).parent.parent.parent / "recipe.dicom"
     if not candidate.exists():
         pytest.skip("recipe.dicom not found — run from repo root")
     return candidate
