@@ -1,0 +1,12 @@
+cff-version: 0.1.0
+message: "If you use this software, please cite it as below."
+title: "ais-deid"
+version: 0.1.0
+date-released: 2026-08-10
+authors:
+  - family-names: Murray
+    given-names: Kirsty
+    affiliation: University of Newcastle, Australian Imaging Service and National Imaging Facility
+    orcid: "https://orcid.org/0000-0001-7975-5518"   # if you have one
+repository-code: "https://github.com/Australian-Imaging-Service/ais-deid"
+license: Apache-2.0
