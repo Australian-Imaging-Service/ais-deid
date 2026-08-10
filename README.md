@@ -1,3 +1,23 @@
+# AIS-deid
+
+AIS-deid is a package that will evolve to include deidentification of multiple imaging file types.
+Current version: 0.1.0
+Data types covered: DICOM only.
+
+## Note the CLI command is different from the PyPI package name:
+
+> Package installs as `ais-deid`, but exposes its command-line tool as `dicom-deid`
+> (the DICOM-specific tool within this package — more domains may be added
+> under the `ais-deid` name in future).
+
+i.e. 
+| Use                                         | Name         |
+|---------------------------------------------|--------------|
+| PyPI package (what you pip-install)         | `ais-deid`   |
+| Import package (what is imported in python) | `ais-deid`   |
+| CLI command (what to write in the terminal  | `dicom-deid` |
+
+
 # dicom-deid
 
 De-identify DICOM metadata using [pydicom/deid](https://pydicom.github.io/deid/).
